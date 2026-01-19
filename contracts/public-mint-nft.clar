@@ -40,9 +40,7 @@
 
 (define-public (withdraw (amount uint) (recipient principal))
   (begin
-    (if (is-eq tx-sender (var-get admin))
-      (stx-transfer? amount (as-contract tx-sender) recipient)
-      err-not-admin
-    )
+    (asserts! (is-eq tx-sender (var-get admin)) err-not-admin)
+    (as-contract (stx-transfer? amount tx-sender recipient))
   )
 )
