@@ -200,6 +200,19 @@
   color: var(--ink-soft);
 }
 
+.hero-loading {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--accent-dark);
+}
+
+.hero-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #b42318;
+  word-break: break-word;
+}
+
 .panel {
   padding: 28px;
   border-radius: 28px;
@@ -295,6 +308,13 @@
   color: var(--ink);
   font-weight: 600;
   cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .note {

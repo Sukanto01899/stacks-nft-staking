@@ -53,6 +53,8 @@ function parseUint(value: string) {
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("Mint");
   const [status, setStatus] = useState("Ready");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [lastTxId, setLastTxId] = useState<string | null>(null);
   const [stakeTokenId, setStakeTokenId] = useState("1");
   const [adminRecipient, setAdminRecipient] = useState("");
@@ -107,6 +109,7 @@ function App() {
   };
 
   const connectWallet = () => {
+    setErrorMessage("");
     showConnect({
       appDetails: {
         name: "Stacks NFT Staking",
@@ -169,6 +172,8 @@ function App() {
       showStatus("Connect wallet first");
       return;
     }
+    setErrorMessage("");
+    setIsLoading(true);
     try {
       const postConditionMode =
         (contractName === contracts.mint &&
@@ -190,11 +195,17 @@ function App() {
         onFinish: (data) => {
           setLastTxId(data.txId);
           showStatus(`Submitted ${functionName}`);
+          setIsLoading(false);
         },
-        onCancel: () => showStatus("Transaction cancelled"),
+        onCancel: () => {
+          showStatus("Transaction cancelled");
+          setIsLoading(false);
+        },
       });
     } catch (error) {
-      showStatus(`Error: ${(error as Error).message}`);
+      setErrorMessage((error as Error).message);
+      showStatus("Transaction failed");
+      setIsLoading(false);
     }
   };
 
@@ -317,6 +328,8 @@ function App() {
             </p>
             <p className="hero-hint">Network: {networkName}</p>
             <p className="hero-status">Status: {status}</p>
+            {isLoading && <p className="hero-loading">Working…</p>}
+            {errorMessage && <p className="hero-error">{errorMessage}</p>}
             {lastTxId && (
               <p className="hero-tx">Last tx: {lastTxId.slice(0, 12)}...</p>
             )}
@@ -338,7 +351,12 @@ function App() {
                 <h3>Supply</h3>
                 <p>Infinite supply, sequential token IDs.</p>
               </div>
-              <button className="primary" type="button" onClick={handleMint}>
+              <button
+                className="primary"
+                type="button"
+                onClick={handleMint}
+                disabled={isLoading}
+              >
                 Mint NFT
               </button>
             </div>
@@ -361,13 +379,28 @@ function App() {
                 />
               </label>
               <div className="actions">
-                <button className="primary" type="button" onClick={handleStake}>
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={handleStake}
+                  disabled={isLoading}
+                >
                   Stake NFT
                 </button>
-                <button className="ghost" type="button" onClick={handleClaim}>
+                <button
+                  className="ghost"
+                  type="button"
+                  onClick={handleClaim}
+                  disabled={isLoading}
+                >
                   Claim Rewards
                 </button>
-                <button className="ghost" type="button" onClick={handleUnstake}>
+                <button
+                  className="ghost"
+                  type="button"
+                  onClick={handleUnstake}
+                  disabled={isLoading}
+                >
                   Unstake NFT
                 </button>
               </div>
@@ -396,7 +429,12 @@ function App() {
                     placeholder={defaultMinter || "ST... .stake-nft"}
                   />
                 </label>
-                <button className="primary" type="button" onClick={handleSetMinter}>
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={handleSetMinter}
+                  disabled={isLoading}
+                >
                   Set Minter
                 </button>
               </div>
@@ -419,7 +457,12 @@ function App() {
                     placeholder="0.5"
                   />
                 </label>
-                <button className="primary" type="button" onClick={handleWithdraw}>
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={handleWithdraw}
+                  disabled={isLoading}
+                >
                   Withdraw
                 </button>
               </div>
