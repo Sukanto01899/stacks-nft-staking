@@ -4,6 +4,8 @@ import { showConnect, openContractCall } from "@stacks/connect";
 import {
   PostConditionMode,
   contractPrincipalCV,
+  cvToValue,
+  fetchCallReadOnlyFunction,
   principalCV,
   uintCV,
 } from "@stacks/transactions";
@@ -15,9 +17,9 @@ const appConfig = new AppConfig(["store_write", "publish_data"]);
 const userSession = new UserSession({ appConfig });
 
 const contracts = {
-  mint: "public-mint-nft",
-  stake: "stake-nft",
-  reward: "reward-token",
+  mint: import.meta.env.VITE_MINT_CONTRACT ?? "public-mint-nft",
+  stake: import.meta.env.VITE_STAKE_CONTRACT ?? "stake-nft",
+  reward: import.meta.env.VITE_REWARD_CONTRACT ?? "reward-token",
 };
 
 const tabs = ["Mint", "Stake", "Admin"] as const;
@@ -50,12 +52,22 @@ function parseUint(value: string) {
   return BigInt(cleaned);
 }
 
+function formatUstx(value: bigint | null) {
+  if (value === null) return "—";
+  const whole = value / 1_000_000n;
+  const frac = (value % 1_000_000n).toString().padStart(6, "0");
+  return `${whole.toString()}.${frac}`;
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("Mint");
   const [status, setStatus] = useState("Ready");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [lastTxId, setLastTxId] = useState<string | null>(null);
+  const [totalMinted, setTotalMinted] = useState<bigint | null>(null);
+  const [userMinted, setUserMinted] = useState<bigint | null>(null);
+  const [mintContractBalance, setMintContractBalance] = useState<bigint | null>(null);
   const [stakeTokenId, setStakeTokenId] = useState("1");
   const [adminRecipient, setAdminRecipient] = useState("");
   const [adminAmount, setAdminAmount] = useState("");
@@ -70,12 +82,17 @@ function App() {
     }
   });
 
-  const networkName = (import.meta.env.VITE_STACKS_NETWORK ?? "testnet").toLowerCase();
-  const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS ?? "";
+  const networkName = (
+    import.meta.env.VITE_STACKS_NETWORK ?? "testnet"
+  ).toLowerCase();
+  const contractAddress =
+    import.meta.env.VITE_CONTRACT_ADDRESS ??
+    import.meta.env.VITE_CONTRACT_ADDRES ??
+    "";
 
   const network = useMemo(
     () => (networkName === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET),
-    [networkName]
+    [networkName],
   );
 
   const stxAddress = useMemo(() => {
@@ -159,10 +176,85 @@ function App() {
     };
   }, []);
 
+  const refreshMintStats = async () => {
+    if (!contractAddress) return;
+    const ownerAddress = stxAddress ?? contractAddress;
+    try {
+      const result = await fetchCallReadOnlyFunction({
+        contractAddress,
+        contractName: contracts.mint,
+        functionName: "get-last-token-id",
+        functionArgs: [],
+        senderAddress: ownerAddress,
+        network,
+      });
+      const value = cvToValue(result) as { value: bigint } | bigint;
+      setTotalMinted(typeof value === "bigint" ? value : value.value);
+    } catch {
+      setTotalMinted(null);
+    }
+    if (!stxAddress) {
+      setUserMinted(null);
+      return;
+    }
+    try {
+      const result = await fetchCallReadOnlyFunction({
+        contractAddress,
+        contractName: contracts.mint,
+        functionName: "get-user-minted",
+        functionArgs: [principalCV(stxAddress)],
+        senderAddress: ownerAddress,
+        network,
+      });
+      const value = cvToValue(result) as { value: bigint } | bigint;
+      setUserMinted(typeof value === "bigint" ? value : value.value);
+    } catch {
+      setUserMinted(null);
+    }
+  };
+
+  const coreApiUrl =
+    network.coreApiUrl ??
+    (networkName === "mainnet"
+      ? "https://api.mainnet.hiro.so"
+      : "https://api.testnet.hiro.so");
+
+  const refreshMintContractBalance = async () => {
+    if (!contractAddress) {
+      setMintContractBalance(null);
+      return;
+    }
+    try {
+      const contractPrincipal = `${contractAddress}.${contracts.mint}`;
+      const response = await fetch(
+        `${coreApiUrl}/v2/accounts/${contractPrincipal}?proof=0`,
+      );
+      if (!response.ok) {
+        setMintContractBalance(null);
+        return;
+      }
+      const data = (await response.json()) as { balance?: string };
+      setMintContractBalance(data.balance ? BigInt(data.balance) : null);
+    } catch {
+      setMintContractBalance(null);
+    }
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void refreshMintStats();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [contractAddress, network, stxAddress]);
+
+  useEffect(() => {
+    void refreshMintContractBalance();
+  }, [contractAddress, network]);
+
   const runContractCall = async (
     contractName: string,
     functionName: string,
-    functionArgs: ClarityValue[]
+    functionArgs: ClarityValue[],
   ) => {
     if (!contractAddress) {
       showStatus("Set VITE_CONTRACT_ADDRESS in env");
@@ -195,6 +287,13 @@ function App() {
         onFinish: (data) => {
           setLastTxId(data.txId);
           showStatus(`Submitted ${functionName}`);
+          if (contractName === contracts.mint && functionName === "mint") {
+            void refreshMintStats();
+            void refreshMintContractBalance();
+          }
+          if (contractName === contracts.mint && functionName === "withdraw") {
+            void refreshMintContractBalance();
+          }
           setIsLoading(false);
         },
         onCancel: () => {
@@ -292,7 +391,11 @@ function App() {
           {isSignedIn ? (
             <div className="wallet-connected">
               <span className="wallet-status">Connected</span>
-              <button className="wallet-button" type="button" onClick={disconnectWallet}>
+              <button
+                className="wallet-button"
+                type="button"
+                onClick={disconnectWallet}
+              >
                 {displayAddress || "Disconnect"}
               </button>
             </div>
@@ -346,6 +449,20 @@ function App() {
               <div className="info-block">
                 <h3>Price</h3>
                 <p>0.0001 STX per NFT (100 microstacks).</p>
+              </div>
+              <div className="info-block">
+                <h3>Total Minted</h3>
+                <p>{totalMinted === null ? "—" : totalMinted.toString()}</p>
+              </div>
+              <div className="info-block">
+                <h3>Your Minted</h3>
+                <p>
+                  {userMinted === null
+                    ? isSignedIn
+                      ? "—"
+                      : "Connect wallet"
+                    : userMinted.toString()}
+                </p>
               </div>
               <div className="info-block">
                 <h3>Supply</h3>
@@ -441,6 +558,10 @@ function App() {
               <div className="card">
                 <h3>Withdraw STX</h3>
                 <p>Withdraw mint proceeds from the NFT contract.</p>
+                <div className="info-block">
+                  <h3>Mint Balance (STX)</h3>
+                  <p>{formatUstx(mintContractBalance)}</p>
+                </div>
                 <label className="field">
                   <span>Recipient</span>
                   <input
@@ -487,17 +608,33 @@ function App() {
               Connect with Leather, Xverse, or any Stacks-compatible wallet.
             </p>
             <div className="wallet-grid">
-              <button className="wallet-option" type="button" onClick={connectWallet}>
+              <button
+                className="wallet-option"
+                type="button"
+                onClick={connectWallet}
+              >
                 Leather Wallet
               </button>
-              <button className="wallet-option" type="button" onClick={connectWallet}>
+              <button
+                className="wallet-option"
+                type="button"
+                onClick={connectWallet}
+              >
                 Xverse Wallet
               </button>
-              <button className="wallet-option" type="button" onClick={connectWallet}>
+              <button
+                className="wallet-option"
+                type="button"
+                onClick={connectWallet}
+              >
                 Hiro Wallet
               </button>
             </div>
-            <button className="primary full" type="button" onClick={connectWallet}>
+            <button
+              className="primary full"
+              type="button"
+              onClick={connectWallet}
+            >
               Open Wallet Selector
             </button>
           </div>

@@ -4,6 +4,7 @@
 
 (define-data-var admin principal tx-sender)
 (define-data-var last-token-id uint u0)
+(define-map minted-count { owner: principal } { count: uint })
 
 (define-non-fungible-token nft uint)
 
@@ -19,6 +20,13 @@
   (ok (var-get last-token-id))
 )
 
+(define-read-only (get-user-minted (owner principal))
+  (match (map-get? minted-count { owner: owner })
+    entry (ok (get count entry))
+    (ok u0)
+  )
+)
+
 (define-read-only (get-owner (token-id uint))
   (ok (nft-get-owner? nft token-id))
 )
@@ -29,6 +37,12 @@
       (try! (stx-transfer? mint-price tx-sender (as-contract tx-sender)))
       (try! (nft-mint? nft next-id tx-sender))
       (var-set last-token-id next-id)
+      (let (
+        (current (default-to { count: u0 } (map-get? minted-count { owner: tx-sender })))
+        (updated (+ (get count current) u1))
+      )
+        (map-set minted-count { owner: tx-sender } { count: updated })
+      )
       (ok next-id)
     )
   )

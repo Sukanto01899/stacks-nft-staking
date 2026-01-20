@@ -6,11 +6,11 @@ const deployer = accounts.get("deployer") ?? accounts.get("wallet_1")!;
 const wallet1 = accounts.get("wallet_1")!;
 const wallet2 = accounts.get("wallet_2")!;
 
-const stakeContractPrincipal = Cl.contractPrincipal(deployer, "stake-nft");
+const stakeContractPrincipal = Cl.contractPrincipal(deployer, "stake-nft-v2");
 
 function setMinter() {
   const result = simnet.callPublicFn(
-    "reward-token",
+    "reward-token-v2",
     "set-minter",
     [stakeContractPrincipal],
     deployer
@@ -22,11 +22,11 @@ describe("stake-nft", () => {
   it("accrues rewards per staked NFT and allows claim", () => {
     setMinter();
 
-    const mint = simnet.callPublicFn("public-mint-nft", "mint", [], wallet2);
+    const mint = simnet.callPublicFn("public-mint-nft-v2", "mint", [], wallet2);
     expect(mint.result).toBeOk(Cl.uint(1));
 
     const stake = simnet.callPublicFn(
-      "stake-nft",
+      "stake-nft-v2",
       "stake",
       [Cl.uint(1)],
       wallet2
@@ -34,7 +34,7 @@ describe("stake-nft", () => {
     expect(stake.result).toBeOk(Cl.bool(true));
 
     const claimEarly = simnet.callPublicFn(
-      "stake-nft",
+      "stake-nft-v2",
       "claim",
       [Cl.uint(1)],
       wallet2
@@ -46,7 +46,7 @@ describe("stake-nft", () => {
     }
 
     const claim = simnet.callPublicFn(
-      "stake-nft",
+      "stake-nft-v2",
       "claim",
       [Cl.uint(1)],
       wallet2
@@ -54,7 +54,7 @@ describe("stake-nft", () => {
     expect(claim.result).toBeOk(Cl.uint(1_000_000));
 
     const balance = simnet.callReadOnlyFn(
-      "reward-token",
+      "reward-token-v2",
       "get-balance",
       [Cl.principal(wallet2)],
       wallet2
@@ -65,19 +65,19 @@ describe("stake-nft", () => {
   it("supports staking multiple NFTs and claiming separately", () => {
     setMinter();
 
-    const mint1 = simnet.callPublicFn("public-mint-nft", "mint", [], wallet2);
-    const mint2 = simnet.callPublicFn("public-mint-nft", "mint", [], wallet2);
+    const mint1 = simnet.callPublicFn("public-mint-nft-v2", "mint", [], wallet2);
+    const mint2 = simnet.callPublicFn("public-mint-nft-v2", "mint", [], wallet2);
     expect(mint1.result).toBeOk(Cl.uint(1));
     expect(mint2.result).toBeOk(Cl.uint(2));
 
     const stake1 = simnet.callPublicFn(
-      "stake-nft",
+      "stake-nft-v2",
       "stake",
       [Cl.uint(1)],
       wallet2
     );
     const stake2 = simnet.callPublicFn(
-      "stake-nft",
+      "stake-nft-v2",
       "stake",
       [Cl.uint(2)],
       wallet2
@@ -90,13 +90,13 @@ describe("stake-nft", () => {
     }
 
     const claim1 = simnet.callPublicFn(
-      "stake-nft",
+      "stake-nft-v2",
       "claim",
       [Cl.uint(1)],
       wallet2
     );
     const claim2 = simnet.callPublicFn(
-      "stake-nft",
+      "stake-nft-v2",
       "claim",
       [Cl.uint(2)],
       wallet2
@@ -105,7 +105,7 @@ describe("stake-nft", () => {
     expect(claim2.result).toBeOk(Cl.uint(1_000_000));
 
     const balance = simnet.callReadOnlyFn(
-      "reward-token",
+      "reward-token-v2",
       "get-balance",
       [Cl.principal(wallet2)],
       wallet2
@@ -116,11 +116,11 @@ describe("stake-nft", () => {
   it("unstakes and returns pending rewards", () => {
     setMinter();
 
-    const mint = simnet.callPublicFn("public-mint-nft", "mint", [], wallet2);
+    const mint = simnet.callPublicFn("public-mint-nft-v2", "mint", [], wallet2);
     expect(mint.result).toBeOk(Cl.uint(1));
 
     const stake = simnet.callPublicFn(
-      "stake-nft",
+      "stake-nft-v2",
       "stake",
       [Cl.uint(1)],
       wallet2
@@ -132,7 +132,7 @@ describe("stake-nft", () => {
     }
 
     const unstake = simnet.callPublicFn(
-      "stake-nft",
+      "stake-nft-v2",
       "unstake",
       [Cl.uint(1)],
       wallet2
@@ -140,7 +140,7 @@ describe("stake-nft", () => {
     expect(unstake.result).toBeOk(Cl.uint(1_000_000));
 
     const stakeData = simnet.callReadOnlyFn(
-      "stake-nft",
+      "stake-nft-v2",
       "get-stake",
       [Cl.uint(1)],
       wallet2
@@ -148,11 +148,62 @@ describe("stake-nft", () => {
     expect(stakeData.result).toBeOk(Cl.none());
 
     const owner = simnet.callReadOnlyFn(
-      "public-mint-nft",
+      "public-mint-nft-v2",
       "get-owner",
       [Cl.uint(1)],
       wallet2
     );
     expect(owner.result).toBeOk(Cl.some(Cl.principal(wallet2)));
+  });
+
+  it("claims only full-hour rewards and resets the accrual window", () => {
+    setMinter();
+
+    const mint = simnet.callPublicFn("public-mint-nft-v2", "mint", [], wallet2);
+    expect(mint.result).toBeOk(Cl.uint(1));
+
+    const stake = simnet.callPublicFn(
+      "stake-nft-v2",
+      "stake",
+      [Cl.uint(1)],
+      wallet2
+    );
+    expect(stake.result).toBeOk(Cl.bool(true));
+
+    for (let i = 0; i < 6; i += 1) {
+      simnet.mineEmptyBlock();
+    }
+
+    const claim1 = simnet.callPublicFn(
+      "stake-nft-v2",
+      "claim",
+      [Cl.uint(1)],
+      wallet2
+    );
+    expect(claim1.result).toBeOk(Cl.uint(1_000_000));
+
+    for (let i = 0; i < 3; i += 1) {
+      simnet.mineEmptyBlock();
+    }
+
+    const claim2 = simnet.callPublicFn(
+      "stake-nft-v2",
+      "claim",
+      [Cl.uint(1)],
+      wallet2
+    );
+    expect(claim2.result).toBeOk(Cl.uint(0));
+
+    for (let i = 0; i < 2; i += 1) {
+      simnet.mineEmptyBlock();
+    }
+
+    const claim3 = simnet.callPublicFn(
+      "stake-nft-v2",
+      "claim",
+      [Cl.uint(1)],
+      wallet2
+    );
+    expect(claim3.result).toBeOk(Cl.uint(1_000_000));
   });
 });

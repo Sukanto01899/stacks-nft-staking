@@ -5,18 +5,18 @@ authors = []
 telemetry = true
 cache_dir = '.\.cache'
 requirements = []
-[contracts.public-mint-nft]
-path = 'contracts/public-mint-nft.clar'
+[contracts.public-mint-nft-v2]
+path = 'contracts/public-mint-nft-v2.clar'
 clarity_version = 2
 epoch = '2.1'
 
-[contracts.reward-token]
-path = 'contracts/reward-token.clar'
+[contracts.reward-token-v2]
+path = 'contracts/reward-token-v2.clar'
 clarity_version = 2
 epoch = '2.1'
 
-[contracts.stake-nft]
-path = 'contracts/stake-nft.clar'
+[contracts.stake-nft-v2]
+path = 'contracts/stake-nft-v2.clar'
 clarity_version = 2
 epoch = '2.1'
 [repl.analysis]

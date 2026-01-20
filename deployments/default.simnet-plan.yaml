@@ -64,18 +64,18 @@ plan:
     - id: 0
       transactions:
         - emulated-contract-publish:
-            contract-name: public-mint-nft
+            contract-name: public-mint-nft-v2
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/public-mint-nft.clar
+            path: contracts/public-mint-nft-v2.clar
             clarity-version: 2
         - emulated-contract-publish:
-            contract-name: reward-token
+            contract-name: reward-token-v2
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/reward-token.clar
+            path: contracts/reward-token-v2.clar
             clarity-version: 2
         - emulated-contract-publish:
-            contract-name: stake-nft
+            contract-name: stake-nft-v2
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/stake-nft.clar
+            path: contracts/stake-nft-v2.clar
             clarity-version: 2
       epoch: "2.1"
