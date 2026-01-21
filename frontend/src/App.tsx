@@ -52,12 +52,28 @@ function parseUint(value: string) {
   return BigInt(cleaned);
 }
 
-function formatUstx(value: bigint | null) {
-  if (value === null) return "—";
-  const whole = value / 1_000_000n;
-  const frac = (value % 1_000_000n).toString().padStart(6, "0");
+function toBigInt(value: bigint | number | string): bigint {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number") return BigInt(Math.trunc(value));
+  return BigInt(value);
+}
+
+function formatUstx(value: bigint | number | string | null) {
+  if (value === null) return "N/A";
+  const amount = toBigInt(value);
+  const whole = amount / 1_000_000n;
+  const frac = (amount % 1_000_000n).toString().padStart(6, "0");
   return `${whole.toString()}.${frac}`;
 }
+
+function formatToken(value: bigint | number | string | null) {
+  if (value === null) return "N/A";
+  const amount = toBigInt(value);
+  const whole = amount / 1_000_000n;
+  const frac = (amount % 1_000_000n).toString().padStart(6, "0");
+  return `${whole.toString()}.${frac}`;
+}
+
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("Mint");
@@ -68,6 +84,8 @@ function App() {
   const [totalMinted, setTotalMinted] = useState<bigint | null>(null);
   const [userMinted, setUserMinted] = useState<bigint | null>(null);
   const [mintContractBalance, setMintContractBalance] = useState<bigint | null>(null);
+  const [rewardBalance, setRewardBalance] = useState<bigint | null>(null);
+  const [pendingReward, setPendingReward] = useState<bigint | null>(null);
   const [stakeTokenId, setStakeTokenId] = useState("1");
   const [adminRecipient, setAdminRecipient] = useState("");
   const [adminAmount, setAdminAmount] = useState("");
@@ -214,10 +232,9 @@ function App() {
   };
 
   const coreApiUrl =
-    network.coreApiUrl ??
-    (networkName === "mainnet"
+    networkName === "mainnet"
       ? "https://api.mainnet.hiro.so"
-      : "https://api.testnet.hiro.so");
+      : "https://api.testnet.hiro.so";
 
   const refreshMintContractBalance = async () => {
     if (!contractAddress) {
@@ -240,6 +257,47 @@ function App() {
     }
   };
 
+  const refreshRewardData = async () => {
+    if (!contractAddress || !stxAddress) {
+      setRewardBalance(null);
+      setPendingReward(null);
+      return;
+    }
+    try {
+      const result = await fetchCallReadOnlyFunction({
+        contractAddress,
+        contractName: contracts.reward,
+        functionName: "get-balance",
+        functionArgs: [principalCV(stxAddress)],
+        senderAddress: stxAddress,
+        network,
+      });
+      const value = cvToValue(result) as { value: bigint } | bigint;
+      setRewardBalance(typeof value === "bigint" ? value : value.value);
+    } catch {
+      setRewardBalance(null);
+    }
+    const tokenId = parseUint(stakeTokenId);
+    if (tokenId === null) {
+      setPendingReward(null);
+      return;
+    }
+    try {
+      const result = await fetchCallReadOnlyFunction({
+        contractAddress,
+        contractName: contracts.stake,
+        functionName: "get-pending-reward",
+        functionArgs: [uintCV(tokenId)],
+        senderAddress: stxAddress,
+        network,
+      });
+      const value = cvToValue(result) as { value: bigint } | bigint;
+      setPendingReward(typeof value === "bigint" ? value : value.value);
+    } catch {
+      setPendingReward(null);
+    }
+  };
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void refreshMintStats();
@@ -250,6 +308,13 @@ function App() {
   useEffect(() => {
     void refreshMintContractBalance();
   }, [contractAddress, network]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void refreshRewardData();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [contractAddress, network, stxAddress, stakeTokenId]);
 
   const runContractCall = async (
     contractName: string,
@@ -293,6 +358,14 @@ function App() {
           }
           if (contractName === contracts.mint && functionName === "withdraw") {
             void refreshMintContractBalance();
+          }
+          if (
+            contractName === contracts.stake &&
+            (functionName === "stake" ||
+              functionName === "claim" ||
+              functionName === "unstake")
+          ) {
+            void refreshRewardData();
           }
           setIsLoading(false);
         },
@@ -520,6 +593,14 @@ function App() {
                 >
                   Unstake NFT
                 </button>
+              </div>
+              <div className="info-block">
+                <h3>Available to Claim</h3>
+                <p>{formatToken(pendingReward)}</p>
+              </div>
+              <div className="info-block">
+                <h3>Total Claimed</h3>
+                <p>{isSignedIn ? formatToken(rewardBalance) : "Connect wallet"}</p>
               </div>
               <div className="note">
                 Rewards are calculated per NFT at ~6 blocks/hour.
