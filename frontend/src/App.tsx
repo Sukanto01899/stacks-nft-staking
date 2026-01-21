@@ -298,6 +298,7 @@ function App() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void refreshMintStats();
@@ -305,10 +306,15 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [contractAddress, network, stxAddress]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
-    void refreshMintContractBalance();
+    const timer = window.setTimeout(() => {
+      void refreshMintContractBalance();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [contractAddress, network]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void refreshRewardData();
@@ -518,7 +524,7 @@ function App() {
               <h2>Mint NFT</h2>
               <p>Anyone can mint. One NFT per transaction.</p>
             </div>
-            <div className="panel-body">
+            <div className="panel-body split">
               <div className="info-block">
                 <h3>Price</h3>
                 <p>0.0001 STX per NFT (100 microstacks).</p>
@@ -541,14 +547,17 @@ function App() {
                 <h3>Supply</h3>
                 <p>Infinite supply, sequential token IDs.</p>
               </div>
-              <button
-                className="primary"
-                type="button"
-                onClick={handleMint}
-                disabled={isLoading}
-              >
-                Mint NFT
-              </button>
+              <div className="mint-cta">
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={handleMint}
+                  disabled={isLoading}
+                >
+                  Mint NFT
+                </button>
+                <p className="note">One NFT per transaction.</p>
+              </div>
             </div>
           </section>
         )}
