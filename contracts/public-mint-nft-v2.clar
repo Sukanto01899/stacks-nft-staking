@@ -6,6 +6,18 @@
 (define-data-var last-token-id uint u0)
 (define-map minted-count { owner: principal } { count: uint })
 
+;; Define events for NFT activities
+(define-events
+  ;; Emitted when a new NFT is minted
+  (event (mint-event (token-id uint) (owner principal) (price uint)))
+  
+  ;; Emitted when an NFT is transferred
+  (event (transfer-event (token-id uint) (sender principal) (recipient principal)))
+  
+  ;; Emitted when funds are withdrawn by admin
+  (event (withdraw-event (amount uint) (recipient principal) (admin principal)))
+)
+
 (define-non-fungible-token nft uint)
 
 (define-read-only (get-admin)
@@ -43,6 +55,7 @@
       )
         (map-set minted-count { owner: tx-sender } { count: updated })
       )
+      (emit-event (mint-event next-id tx-sender mint-price))
       (ok next-id)
     )
   )
@@ -50,11 +63,15 @@
 
 (define-public (transfer (token-id uint) (sender principal) (recipient principal))
   (nft-transfer? nft token-id sender recipient)
+   (emit-event (transfer-event token-id sender recipient))
+    (ok true)
 )
 
 (define-public (withdraw (amount uint) (recipient principal))
   (begin
     (asserts! (is-eq tx-sender (var-get admin)) err-not-admin)
     (as-contract (stx-transfer? amount tx-sender recipient))
+    (emit-event (withdraw-event amount recipient tx-sender))
+    (ok true)
   )
 )
