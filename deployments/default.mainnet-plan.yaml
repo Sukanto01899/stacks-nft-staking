@@ -9,24 +9,24 @@ plan:
     - id: 0
       transactions:
         - contract-publish:
-            contract-name: public-mint-nft
-            expected-sender: SP1G4ZDXED8XM2XJ4Q4GJ7F4PG4EJQ1KKXRCD0S3K
-            cost: 10810
-            path: "contracts\\public-mint-nft.clar"
+            contract-name: public-mint-nft-v2
+            expected-sender: SP1K2XGT5RNGT42N49BH936VDF8NXWNZJY15BPV4F
+            cost: 15350
+            path: "contracts\\public-mint-nft-v2.clar"
             anchor-block-only: true
             clarity-version: 2
         - contract-publish:
-            contract-name: reward-token
-            expected-sender: SP1G4ZDXED8XM2XJ4Q4GJ7F4PG4EJQ1KKXRCD0S3K
+            contract-name: reward-token-v2
+            expected-sender: SP1K2XGT5RNGT42N49BH936VDF8NXWNZJY15BPV4F
             cost: 15540
-            path: "contracts\\reward-token.clar"
+            path: "contracts\\reward-token-v2.clar"
             anchor-block-only: true
             clarity-version: 2
         - contract-publish:
-            contract-name: stake-nft
-            expected-sender: SP1G4ZDXED8XM2XJ4Q4GJ7F4PG4EJQ1KKXRCD0S3K
-            cost: 30330
-            path: "contracts\\stake-nft.clar"
+            contract-name: stake-nft-v2
+            expected-sender: SP1K2XGT5RNGT42N49BH936VDF8NXWNZJY15BPV4F
+            cost: 30450
+            path: "contracts\\stake-nft-v2.clar"
             anchor-block-only: true
             clarity-version: 2
       epoch: "2.1"
