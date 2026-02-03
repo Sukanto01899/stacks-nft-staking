@@ -4,6 +4,7 @@ import { showConnect, openContractCall } from "@stacks/connect";
 import {
   PostConditionMode,
   contractPrincipalCV,
+  boolCV,
   cvToValue,
   fetchCallReadOnlyFunction,
   principalCV,
@@ -86,10 +87,13 @@ function App() {
   const [mintContractBalance, setMintContractBalance] = useState<bigint | null>(null);
   const [rewardBalance, setRewardBalance] = useState<bigint | null>(null);
   const [pendingReward, setPendingReward] = useState<bigint | null>(null);
+  const [isWhitelisted, setIsWhitelisted] = useState<boolean | null>(null);
   const [stakeTokenId, setStakeTokenId] = useState("1");
   const [adminRecipient, setAdminRecipient] = useState("");
   const [adminAmount, setAdminAmount] = useState("");
   const [minterPrincipal, setMinterPrincipal] = useState("");
+  const [whitelistAddress, setWhitelistAddress] = useState("");
+  const [whitelistEnabled, setWhitelistEnabled] = useState(true);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(() => {
     try {
@@ -213,6 +217,7 @@ function App() {
     }
     if (!stxAddress) {
       setUserMinted(null);
+      setIsWhitelisted(null);
       return;
     }
     try {
@@ -228,6 +233,20 @@ function App() {
       setUserMinted(typeof value === "bigint" ? value : value.value);
     } catch {
       setUserMinted(null);
+    }
+    try {
+      const result = await fetchCallReadOnlyFunction({
+        contractAddress,
+        contractName: contracts.mint,
+        functionName: "is-whitelisted",
+        functionArgs: [principalCV(stxAddress)],
+        senderAddress: ownerAddress,
+        network,
+      });
+      const value = cvToValue(result) as { value: boolean } | boolean;
+      setIsWhitelisted(typeof value === "boolean" ? value : value.value);
+    } catch {
+      setIsWhitelisted(null);
     }
   };
 
@@ -440,6 +459,18 @@ function App() {
     runContractCall(contracts.mint, "withdraw", [uintCV(amount), recipient]);
   };
 
+  const handleSetWhitelist = () => {
+    const principal = parsePrincipal(whitelistAddress);
+    if (!principal) {
+      showStatus("Enter a valid address");
+      return;
+    }
+    runContractCall(contracts.mint, "set-whitelist", [
+      principal,
+      boolCV(whitelistEnabled),
+    ]);
+  };
+
   return (
     <div className="app">
       <div className="noise" aria-hidden="true" />
@@ -522,7 +553,7 @@ function App() {
           <section className="panel">
             <div className="panel-header">
               <h2>Mint NFT</h2>
-              <p>Anyone can mint. One NFT per transaction.</p>
+              <p>Whitelist mint is enabled. One NFT per transaction.</p>
             </div>
             <div className="panel-body split">
               <div className="info-block">
@@ -547,7 +578,21 @@ function App() {
                 <h3>Supply</h3>
                 <p>Infinite supply, sequential token IDs.</p>
               </div>
-              <div className="mint-cta">
+              <div className="card mint-card">
+                <h3>User Mint</h3>
+                <p>Whitelist required for minting.</p>
+                <div className="info-block">
+                  <h3>Whitelist Status</h3>
+                  <p>
+                    {isWhitelisted === null
+                      ? isSignedIn
+                        ? "â€”"
+                        : "Connect wallet"
+                      : isWhitelisted
+                        ? "Approved"
+                        : "Not whitelisted"}
+                  </p>
+                </div>
                 <button
                   className="primary"
                   type="button"
@@ -675,6 +720,38 @@ function App() {
                   disabled={isLoading}
                 >
                   Withdraw
+                </button>
+              </div>
+              <div className="card">
+                <h3>Whitelist Address</h3>
+                <p>Add or remove a wallet from the mint whitelist.</p>
+                <label className="field">
+                  <span>Wallet Address</span>
+                  <input
+                    value={whitelistAddress}
+                    onChange={(event) => setWhitelistAddress(event.target.value)}
+                    placeholder="ST..."
+                  />
+                </label>
+                <label className="field">
+                  <span>Access</span>
+                  <select
+                    value={whitelistEnabled ? "enable" : "disable"}
+                    onChange={(event) =>
+                      setWhitelistEnabled(event.target.value === "enable")
+                    }
+                  >
+                    <option value="enable">Enable</option>
+                    <option value="disable">Disable</option>
+                  </select>
+                </label>
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={handleSetWhitelist}
+                  disabled={isLoading}
+                >
+                  Set Whitelist
                 </button>
               </div>
             </div>

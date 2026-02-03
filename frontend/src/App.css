@@ -334,6 +334,14 @@
   font-size: 15px;
 }
 
+.field select {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 27, 43, 0.12);
+  background: white;
+  font-size: 15px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -393,6 +401,10 @@ button:disabled {
   gap: 12px;
   box-shadow: 0 12px 26px rgba(15, 27, 43, 0.08);
   animation: fade-in 0.7s ease;
+}
+
+.mint-card {
+  align-self: start;
 }
 
 @keyframes rise-in {
