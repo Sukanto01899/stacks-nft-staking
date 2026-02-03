@@ -44,7 +44,7 @@
 (define-public (stake (token-id uint))
   (begin
     (asserts! (is-none (map-get? staked { token-id: token-id })) err-already-staked)
-    (try! (contract-call? .public-mint-nft-v2 transfer token-id tx-sender (as-contract tx-sender)))
+    (try! (contract-call? .public-mint-nft-v3 transfer token-id tx-sender (as-contract tx-sender)))
     (map-set staked
       { token-id: token-id }
       { owner: tx-sender, staked-at: block-height, last-claim: block-height }
@@ -64,7 +64,7 @@
       )
         (begin
           (if (> amount u0)
-            (try! (contract-call? .reward-token-v2 mint amount tx-sender))
+            (try! (contract-call? .reward-token-v3 mint amount tx-sender))
             true
           )
           (map-set staked
@@ -88,10 +88,10 @@
       )
         (begin
           (if (> amount u0)
-            (try! (contract-call? .reward-token-v2 mint amount tx-sender))
+            (try! (contract-call? .reward-token-v3 mint amount tx-sender))
             true
           )
-          (try! (contract-call? .public-mint-nft-v2 transfer token-id (as-contract tx-sender) tx-sender))
+          (try! (contract-call? .public-mint-nft-v3 transfer token-id (as-contract tx-sender) tx-sender))
           (map-delete staked { token-id: token-id })
           (ok amount)
         )

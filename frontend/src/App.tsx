@@ -18,9 +18,9 @@ const appConfig = new AppConfig(["store_write", "publish_data"]);
 const userSession = new UserSession({ appConfig });
 
 const contracts = {
-  mint: import.meta.env.VITE_MINT_CONTRACT ?? "public-mint-nft",
-  stake: import.meta.env.VITE_STAKE_CONTRACT ?? "stake-nft",
-  reward: import.meta.env.VITE_REWARD_CONTRACT ?? "reward-token",
+  mint: import.meta.env.VITE_MINT_CONTRACT ?? "public-mint-nft-v3",
+  stake: import.meta.env.VITE_STAKE_CONTRACT ?? "stake-nft-v3",
+  reward: import.meta.env.VITE_REWARD_CONTRACT ?? "reward-token-v3",
 };
 
 const tabs = ["Mint", "Stake", "Admin"] as const;
@@ -678,7 +678,7 @@ function App() {
                   <input
                     value={minterPrincipal}
                     onChange={(event) => setMinterPrincipal(event.target.value)}
-                    placeholder={defaultMinter || "ST... .stake-nft"}
+                    placeholder={defaultMinter || "ST... .stake-nft-v3"}
                   />
                 </label>
                 <button
@@ -812,3 +812,5 @@ function App() {
 }
 
 export default App;
+
+
