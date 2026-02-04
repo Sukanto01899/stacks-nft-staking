@@ -18,7 +18,12 @@ const appConfig = new AppConfig(["store_write", "publish_data"]);
 const userSession = new UserSession({ appConfig });
 
 const contracts = {
-  mint: import.meta.env.VITE_MINT_CONTRACT ?? "public-mint-nft-v3",
+  publicMint:
+    import.meta.env.VITE_PUBLIC_MINT_CONTRACT ??
+    import.meta.env.VITE_MINT_CONTRACT ??
+    "public-mint-nft-v3",
+  whitelistMint:
+    import.meta.env.VITE_WHITELIST_MINT_CONTRACT ?? "whitelist-mint-nft-v3",
   stake: import.meta.env.VITE_STAKE_CONTRACT ?? "stake-nft-v3",
   reward: import.meta.env.VITE_REWARD_CONTRACT ?? "reward-token-v3",
 };
@@ -204,7 +209,7 @@ function App() {
     try {
       const result = await fetchCallReadOnlyFunction({
         contractAddress,
-        contractName: contracts.mint,
+        contractName: contracts.publicMint,
         functionName: "get-last-token-id",
         functionArgs: [],
         senderAddress: ownerAddress,
@@ -223,7 +228,7 @@ function App() {
     try {
       const result = await fetchCallReadOnlyFunction({
         contractAddress,
-        contractName: contracts.mint,
+        contractName: contracts.publicMint,
         functionName: "get-user-minted",
         functionArgs: [principalCV(stxAddress)],
         senderAddress: ownerAddress,
@@ -237,7 +242,7 @@ function App() {
     try {
       const result = await fetchCallReadOnlyFunction({
         contractAddress,
-        contractName: contracts.mint,
+        contractName: contracts.whitelistMint,
         functionName: "is-whitelisted",
         functionArgs: [principalCV(stxAddress)],
         senderAddress: ownerAddress,
@@ -261,7 +266,7 @@ function App() {
       return;
     }
     try {
-      const contractPrincipal = `${contractAddress}.${contracts.mint}`;
+      const contractPrincipal = `${contractAddress}.${contracts.whitelistMint}`;
       const response = await fetch(
         `${coreApiUrl}/v2/accounts/${contractPrincipal}?proof=0`,
       );
@@ -358,7 +363,8 @@ function App() {
     setIsLoading(true);
     try {
       const postConditionMode =
-        (contractName === contracts.mint &&
+        ((contractName === contracts.publicMint ||
+          contractName === contracts.whitelistMint) &&
           (functionName === "mint" || functionName === "withdraw")) ||
         (contractName === contracts.stake &&
           (functionName === "stake" ||
@@ -377,11 +383,19 @@ function App() {
         onFinish: (data) => {
           setLastTxId(data.txId);
           showStatus(`Submitted ${functionName}`);
-          if (contractName === contracts.mint && functionName === "mint") {
+          if (
+            (contractName === contracts.publicMint ||
+              contractName === contracts.whitelistMint) &&
+            functionName === "mint"
+          ) {
             void refreshMintStats();
             void refreshMintContractBalance();
           }
-          if (contractName === contracts.mint && functionName === "withdraw") {
+          if (
+            (contractName === contracts.publicMint ||
+              contractName === contracts.whitelistMint) &&
+            functionName === "withdraw"
+          ) {
             void refreshMintContractBalance();
           }
           if (
@@ -406,7 +420,10 @@ function App() {
     }
   };
 
-  const handleMint = () => runContractCall(contracts.mint, "mint", []);
+  const handlePublicMint = () =>
+    runContractCall(contracts.publicMint, "mint", []);
+  const handleWhitelistMint = () =>
+    runContractCall(contracts.whitelistMint, "mint", []);
 
   const handleStake = () => {
     const tokenId = parseUint(stakeTokenId);
@@ -456,7 +473,10 @@ function App() {
       showStatus("Enter a valid recipient principal");
       return;
     }
-    runContractCall(contracts.mint, "withdraw", [uintCV(amount), recipient]);
+    runContractCall(contracts.whitelistMint, "withdraw", [
+      uintCV(amount),
+      recipient,
+    ]);
   };
 
   const handleSetWhitelist = () => {
@@ -465,7 +485,7 @@ function App() {
       showStatus("Enter a valid address");
       return;
     }
-    runContractCall(contracts.mint, "set-whitelist", [
+    runContractCall(contracts.whitelistMint, "set-whitelist", [
       principal,
       boolCV(whitelistEnabled),
     ]);
@@ -553,55 +573,72 @@ function App() {
           <section className="panel">
             <div className="panel-header">
               <h2>Mint NFT</h2>
-              <p>Whitelist mint is enabled. One NFT per transaction.</p>
+              <p>Public and whitelist mint are shown separately.</p>
             </div>
             <div className="panel-body split">
-              <div className="info-block">
-                <h3>Price</h3>
-                <p>0.0001 STX per NFT (100 microstacks).</p>
-              </div>
-              <div className="info-block">
-                <h3>Total Minted</h3>
-                <p>{totalMinted === null ? "—" : totalMinted.toString()}</p>
-              </div>
-              <div className="info-block">
-                <h3>Your Minted</h3>
-                <p>
-                  {userMinted === null
-                    ? isSignedIn
-                      ? "—"
-                      : "Connect wallet"
-                    : userMinted.toString()}
-                </p>
-              </div>
-              <div className="info-block">
-                <h3>Supply</h3>
-                <p>Infinite supply, sequential token IDs.</p>
-              </div>
-              <div className="card mint-card">
-                <h3>User Mint</h3>
-                <p>Whitelist required for minting.</p>
+              <div className="mint-stats">
                 <div className="info-block">
-                  <h3>Whitelist Status</h3>
+                  <h3>Public Mint Price</h3>
+                  <p>Free (0 STX).</p>
+                </div>
+                <div className="info-block">
+                  <h3>Whitelist Mint Price</h3>
+                  <p>0.0001 STX per NFT (100 microstacks).</p>
+                </div>
+                <div className="info-block">
+                  <h3>Total Public Minted</h3>
+                  <p>{totalMinted === null ? "—" : totalMinted.toString()}</p>
+                </div>
+                <div className="info-block">
+                  <h3>Your Public Minted</h3>
                   <p>
-                    {isWhitelisted === null
+                    {userMinted === null
                       ? isSignedIn
-                        ? "â€”"
+                        ? "—"
                         : "Connect wallet"
-                      : isWhitelisted
-                        ? "Approved"
-                        : "Not whitelisted"}
+                      : userMinted.toString()}
                   </p>
                 </div>
-                <button
-                  className="primary"
-                  type="button"
-                  onClick={handleMint}
-                  disabled={isLoading}
-                >
-                  Mint NFT
-                </button>
-                <p className="note">One NFT per transaction.</p>
+              </div>
+              <div className="mint-cards">
+                <div className="card mint-card">
+                  <h3>Public Mint</h3>
+                  <p>Open mint when the public window is active.</p>
+                  <button
+                    className="primary"
+                    type="button"
+                    onClick={handlePublicMint}
+                    disabled={isLoading}
+                  >
+                    Public Mint
+                  </button>
+                  <p className="note">Free mint for everyone.</p>
+                </div>
+                <div className="card mint-card">
+                  <h3>Whitelist Mint</h3>
+                  <p>Whitelist required for minting.</p>
+                  <div className="info-block">
+                    <h3>Whitelist Status</h3>
+                    <p>
+                      {isWhitelisted === null
+                        ? isSignedIn
+                          ? "â€”"
+                          : "Connect wallet"
+                        : isWhitelisted
+                          ? "Approved"
+                          : "Not whitelisted"}
+                    </p>
+                  </div>
+                  <button
+                    className="primary"
+                    type="button"
+                    onClick={handleWhitelistMint}
+                    disabled={isLoading}
+                  >
+                    Whitelist Mint
+                  </button>
+                  <p className="note">One NFT per transaction.</p>
+                </div>
               </div>
             </div>
           </section>
@@ -812,5 +849,7 @@ function App() {
 }
 
 export default App;
+
+
 
 

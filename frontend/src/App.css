@@ -284,6 +284,18 @@
   gap: 18px 22px;
 }
 
+.mint-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.mint-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .mint-cta {
   display: flex;
   flex-direction: column;
@@ -549,6 +561,10 @@ button:disabled {
   }
 
   .panel-body.split {
+    grid-template-columns: 1fr;
+  }
+
+  .mint-stats {
     grid-template-columns: 1fr;
   }
 }
