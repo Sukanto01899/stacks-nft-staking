@@ -11,7 +11,7 @@ plan:
         - contract-publish:
             contract-name: public-mint-nft-v3
             expected-sender: SP1K2XGT5RNGT42N49BH936VDF8NXWNZJY15BPV4F
-            cost: 15350
+            cost: 21590
             path: "contracts\\public-mint-nft-v3.clar"
             anchor-block-only: true
             clarity-version: 2
