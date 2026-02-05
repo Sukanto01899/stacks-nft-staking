@@ -21,11 +21,11 @@ const contracts = {
   publicMint:
     import.meta.env.VITE_PUBLIC_MINT_CONTRACT ??
     import.meta.env.VITE_MINT_CONTRACT ??
-    "public-mint-nft-v3",
+    "public-mint-nft-v5",
   whitelistMint:
-    import.meta.env.VITE_WHITELIST_MINT_CONTRACT ?? "whitelist-mint-nft-v3",
-  stake: import.meta.env.VITE_STAKE_CONTRACT ?? "stake-nft-v3",
-  reward: import.meta.env.VITE_REWARD_CONTRACT ?? "reward-token-v3",
+    import.meta.env.VITE_WHITELIST_MINT_CONTRACT ?? "whitelist-mint-nft-v5",
+  stake: import.meta.env.VITE_STAKE_CONTRACT ?? "stake-nft-v5",
+  reward: import.meta.env.VITE_REWARD_CONTRACT ?? "reward-token-v5",
 };
 
 const tabs = ["Mint", "Stake", "Admin"] as const;
@@ -715,7 +715,7 @@ function App() {
                   <input
                     value={minterPrincipal}
                     onChange={(event) => setMinterPrincipal(event.target.value)}
-                    placeholder={defaultMinter || "ST... .stake-nft-v3"}
+                    placeholder={defaultMinter || "ST... .stake-nft-v5"}
                   />
                 </label>
                 <button

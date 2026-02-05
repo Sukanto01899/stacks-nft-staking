@@ -1,7 +1,7 @@
 (define-constant err-not-admin (err u100))
 (define-constant err-not-whitelisted (err u101))
 
-(define-constant mint-price u100)
+(define-constant mint-price u0)
 
 (define-data-var admin principal tx-sender)
 (define-data-var last-token-id uint u0)
