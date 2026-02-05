@@ -322,6 +322,24 @@ function App() {
     }
   };
 
+  const fetchTxError = async (txId: string) => {
+    try {
+      const response = await fetch(`${coreApiUrl}/extended/v1/tx/${txId}`);
+      if (!response.ok) return;
+      const data = (await response.json()) as {
+        tx_status?: string;
+        tx_result?: { repr?: string };
+        error?: string;
+      };
+      if (data.tx_status === "success") return;
+      const result = data.tx_result?.repr ?? data.error ?? "Transaction failed";
+      setErrorMessage(result);
+      showStatus("Transaction failed");
+    } catch {
+      // Ignore fetch errors; wallet errors are already surfaced.
+    }
+  };
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -383,6 +401,7 @@ function App() {
         onFinish: (data) => {
           setLastTxId(data.txId);
           showStatus(`Submitted ${functionName}`);
+          void fetchTxError(data.txId);
           if (
             (contractName === contracts.publicMint ||
               contractName === contracts.whitelistMint) &&
@@ -409,6 +428,7 @@ function App() {
           setIsLoading(false);
         },
         onCancel: () => {
+          setErrorMessage("Wallet rejected or cancelled the transaction.");
           showStatus("Transaction cancelled");
           setIsLoading(false);
         },
