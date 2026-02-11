@@ -80,7 +80,6 @@ function formatToken(value: bigint | number | string | null) {
   return `${whole.toString()}.${frac}`;
 }
 
-
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("Mint");
   const [status, setStatus] = useState("Ready");
@@ -89,7 +88,9 @@ function App() {
   const [lastTxId, setLastTxId] = useState<string | null>(null);
   const [totalMinted, setTotalMinted] = useState<bigint | null>(null);
   const [userMinted, setUserMinted] = useState<bigint | null>(null);
-  const [mintContractBalance, setMintContractBalance] = useState<bigint | null>(null);
+  const [mintContractBalance, setMintContractBalance] = useState<bigint | null>(
+    null,
+  );
   const [rewardBalance, setRewardBalance] = useState<bigint | null>(null);
   const [pendingReward, setPendingReward] = useState<bigint | null>(null);
   const [isWhitelisted, setIsWhitelisted] = useState<boolean | null>(null);
@@ -635,7 +636,7 @@ function App() {
                   <p className="note">Free mint for everyone.</p>
                 </div>
                 <div className="card mint-card">
-                  <h3>Whitelist Mint</h3>
+                  <h3>Whitelist Minting</h3>
                   <p>Whitelist required for minting.</p>
                   <div className="info-block">
                     <h3>Whitelist Status</h3>
@@ -711,7 +712,9 @@ function App() {
               </div>
               <div className="info-block">
                 <h3>Total Claimed</h3>
-                <p>{isSignedIn ? formatToken(rewardBalance) : "Connect wallet"}</p>
+                <p>
+                  {isSignedIn ? formatToken(rewardBalance) : "Connect wallet"}
+                </p>
               </div>
               <div className="note">
                 Rewards are calculated per NFT at ~6 blocks/hour.
@@ -786,7 +789,9 @@ function App() {
                   <span>Wallet Address</span>
                   <input
                     value={whitelistAddress}
-                    onChange={(event) => setWhitelistAddress(event.target.value)}
+                    onChange={(event) =>
+                      setWhitelistAddress(event.target.value)
+                    }
                     placeholder="ST..."
                   />
                 </label>
@@ -869,7 +874,3 @@ function App() {
 }
 
 export default App;
-
-
-
-
