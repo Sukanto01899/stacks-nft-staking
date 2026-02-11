@@ -5,23 +5,23 @@ authors = []
 telemetry = true
 cache_dir = '.\.cache'
 requirements = []
-[contracts.public-mint-nft-v5]
-path = 'contracts/public-mint-nft-v5.clar'
+[contracts.public-mint-nft-v10]
+path = 'contracts/public-mint-nft-v10.clar'
 clarity_version = 2
 epoch = '2.1'
 
-[contracts.whitelist-mint-nft-v5]
-path = 'contracts/whitelist-mint-nft-v5.clar'
+[contracts.whitelist-mint-nft-v10]
+path = 'contracts/whitelist-mint-nft-v10.clar'
 clarity_version = 2
 epoch = '2.1'
 
-[contracts.reward-token-v5]
-path = 'contracts/reward-token-v5.clar'
+[contracts.reward-token-v10]
+path = 'contracts/reward-token-v10.clar'
 clarity_version = 2
 epoch = '2.1'
 
-[contracts.stake-nft-v5]
-path = 'contracts/stake-nft-v5.clar'
+[contracts.stake-nft-v10]
+path = 'contracts/stake-nft-v10.clar'
 clarity_version = 2
 epoch = '2.1'
 [repl.analysis]
